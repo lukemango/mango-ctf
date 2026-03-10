@@ -1,7 +1,0 @@
-api-version: '1.21'
-name: mango-capturetheflag
-version: 1.0.0
-main: com.lukemango.ctf.CTFPlugin
-description: A Capture The Flag plugin for Minecraft servers
-authors:
-- lukemango
