@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel target="21" />
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="mango-capturetheflag" options="-parameters -Xlint:all -Xdoclint -Xdoclint:-missing" />
+      <module name="mango-capturetheflag.main" options="-parameters -Xlint:all -Xlint:-classfile,-processing -Xdoclint -Xdoclint:-missing" />
+      <module name="mango-capturetheflag.test" options="-parameters -Xlint:all -Xdoclint -Xdoclint:-missing" />
+    </option>
+  </component>
+</project>

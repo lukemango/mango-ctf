@@ -1,0 +1,12 @@
+teams:
+  red:
+    display-name: "Red Team"
+    color: "255,0,0"
+    flag-material: RED_WOOL
+  blue:
+    display-name: "Blue Team"
+    color: "0,0,255"
+    flag-material: BLUE_WOOL
+game:
+  game-time: 600
+  captures-to-win: 3
