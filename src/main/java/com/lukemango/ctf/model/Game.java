@@ -145,6 +145,9 @@ public class Game {
                 ItemUtil.giveTeamEquipment(player, team);
             }
         }
+
+        ConfigManager.get().getMessages().sendAdminGameStarted(admin);
+        ConfigManager.get().getMessages().sendPlayerGameStarted(this.getAudience());
     }
 
     public void end(@Nullable Player admin, boolean cancelled) {

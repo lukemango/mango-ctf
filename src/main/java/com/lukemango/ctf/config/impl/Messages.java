@@ -39,6 +39,12 @@ public class Messages extends AbstractConfig {
         this.sendMessage(player, "player-messages.already-in-team");
     }
 
+    public void sendPlayerGameStarted(Audience audience) {
+        this.sendMessage(audience, "player-messages.game-started",
+                "captures-to-win", String.valueOf(CTFPlugin.get().getConfigManager().getConfig().getCapturesToWin())
+        );
+    }
+
     // Admin messages
     public void sendAdminAlreadyActive(Player player) {
         this.sendMessage(player, "admin-messages.already-active");
@@ -57,6 +63,9 @@ public class Messages extends AbstractConfig {
     }
     public void sendAdminSetFlag(Player player, String teamName) {
         this.sendMessage(player, "admin-messages.set-flag", "<team>", teamName);
+    }
+    public void sendAdminGameStarted(Player player) {
+        this.sendMessage(player, "admin-messages.game-started");
     }
 
 

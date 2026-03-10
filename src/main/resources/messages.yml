@@ -5,6 +5,7 @@ player-messages:
   quit-broadcast: "<yellow><player> has left the game."
   quit: "<red>You have left the game. Thanks for playing!"
   already-in-team: "<red>You are already in a team!"
+  game-started: "<green>The game has started! Capture the enemy's flag and return it to your base to score points. First team to <captures-to-win> captures wins!"
 
 admin-messages:
   already-active: "<red>A game is already active. Please wait for it to finish before attempting to do that again."
@@ -12,3 +13,4 @@ admin-messages:
   not-all-flags-set: "<red>Not all flags are set. Please set all flags before starting the game."
   removed-existing-flag: "<yellow>Removed existing flag for <team> team."
   need-players: "<red>Not enough players to start the game. At least 2 players, one on each team, are required."
+  game-started: "<green>You have started the game!"
