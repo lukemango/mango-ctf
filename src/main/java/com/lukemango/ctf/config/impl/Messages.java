@@ -42,7 +42,7 @@ public class Messages extends AbstractConfig {
 
     public void sendPlayerGameStarted(Audience audience) {
         this.sendMessage(audience, "player-messages.game-started",
-                "captures-to-win", String.valueOf(CTFPlugin.get().getConfigManager().getConfig().getCapturesToWin())
+                "<captures-to-win>", String.valueOf(CTFPlugin.get().getConfigManager().getConfig().getCapturesToWin())
         );
     }
 
