@@ -141,7 +141,6 @@ public class PlayerListener implements Listener {
                 player.getName(),
                 team.getDisplayName()
         );
-        // TODO: Return to base event
     }
 
     private void attemptStealFlag(PlayerInteractEvent event, Player player) {
