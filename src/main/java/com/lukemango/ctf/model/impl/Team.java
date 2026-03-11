@@ -21,6 +21,7 @@ public class Team {
     private final String color;
     private int score;
     private @Nullable FinePosition flagLocation;
+    private @Nullable FinePosition droppedFlagLocation;
     private final Set<UUID> members;
     private final Material flagMaterial;
 
@@ -30,6 +31,7 @@ public class Team {
         this.color = color;
         this.score = 0;
         this.flagLocation = null;
+        this.droppedFlagLocation = null;
         this.members = new HashSet<>();
         this.flagMaterial = flagMaterial;
     }
@@ -54,6 +56,18 @@ public class Team {
         return flagLocation;
     }
 
+    public @Nullable FinePosition getDroppedFlagLocation() {
+        return droppedFlagLocation;
+    }
+
+    public void setDroppedFlagLocation(Location loc) {
+        if (loc == null) {
+            this.droppedFlagLocation = null;
+            return;
+        }
+        this.droppedFlagLocation = new FinePosition(loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(), loc.getWorld().getName());
+    }
+
     public Set<UUID> getMembers() {
         return members;
     }
@@ -74,13 +88,32 @@ public class Team {
         return flagMaterial;
     }
 
-    public boolean isFlag(Material material, Location loc) {
-        if (flagLocation == null) {
+    public boolean isDroppedFlag(Material material, Location loc) {
+        if (this.droppedFlagLocation == null) {
             return false;
         }
 
         if (!material.equals(flagMaterial)) {
             return false;
+        }
+
+        return loc.getBlockX() == droppedFlagLocation.blockX()
+                && loc.getBlockY() == droppedFlagLocation.blockY()
+                && loc.getBlockZ() == droppedFlagLocation.blockZ()
+                && loc.getWorld().getName().equals(droppedFlagLocation.world());
+    }
+
+    public boolean isFlag(Material material, Location loc) {
+        if (!material.equals(flagMaterial)) {
+            return false;
+        }
+
+        // If the flag has been dropped, check if the location matches the dropped flag location
+        if (this.droppedFlagLocation != null) {
+            return loc.getBlockX() == droppedFlagLocation.blockX()
+                    && loc.getBlockY() == droppedFlagLocation.blockY()
+                    && loc.getBlockZ() == droppedFlagLocation.blockZ()
+                    && loc.getWorld().getName().equals(droppedFlagLocation.world());
         }
 
         return loc.getBlockX() == flagLocation.blockX()

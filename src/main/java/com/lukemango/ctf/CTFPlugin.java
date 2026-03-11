@@ -36,7 +36,7 @@ public final class CTFPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        Game.get().end(null, false);
+        Game.get().end(null);
     }
 
     private void initCommands() {

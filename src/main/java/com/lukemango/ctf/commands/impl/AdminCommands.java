@@ -29,9 +29,9 @@ public class AdminCommands extends AbstractCommand {
         Game.get().start(player);
     }
 
-    @Command("ctf admin end")
+    @Command("ctf admin stop")
     @Permission("ctf.admin")
     private void endGame(Player player) {
-        Game.get().end(player, true);
+        Game.get().end(player);
     }
 }

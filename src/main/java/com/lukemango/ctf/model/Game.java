@@ -2,7 +2,9 @@ package com.lukemango.ctf.model;
 
 import com.lukemango.ctf.CTFPlugin;
 import com.lukemango.ctf.config.ConfigManager;
+import com.lukemango.ctf.config.impl.Messages;
 import com.lukemango.ctf.model.impl.CachedPlayer;
+import com.lukemango.ctf.model.impl.TaskType;
 import com.lukemango.ctf.model.impl.Team;
 import com.lukemango.ctf.util.FinePosition;
 import com.lukemango.ctf.util.ItemUtil;
@@ -11,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
 import javax.annotation.Nullable;
 import java.util.Comparator;
@@ -27,15 +30,26 @@ public class Game {
     private boolean active;
     private Set<Team> teams;
     private long startTime;
-    private Map<UUID, CachedPlayer> cachedPlayer;
+    private Map<UUID, CachedPlayer> cachedInventories = new ConcurrentHashMap<>(); // Not in reset() in case players leave the server, and we need to restore their inventory when they rejoin
     private Set<Player> audience;
+    private Map<UUID, String> flagCarriers; // Map of player UUID to team name
+    private Map<TaskType, BukkitTask> tasks;
 
     public Game() {
         instance = this;
+        this.reset();
+    }
+
+    /**
+     * Reset caches and sets to default values.
+     * Called on plugin enable and when a new game starts
+     */
+    private void reset() {
         this.active = false;
         this.teams = new HashSet<>();
-        this.cachedPlayer = new ConcurrentHashMap<>();
         this.audience = new HashSet<>();
+        this.flagCarriers = new ConcurrentHashMap<>();
+        this.tasks = new ConcurrentHashMap<>();
     }
 
     /**
@@ -50,7 +64,7 @@ public class Game {
         }
 
         if (teams.isEmpty()) {
-            this.teams = new HashSet<>();
+            this.reset();
             for (String teamName : cfgManager.getConfig().getTeams()) {
                 teams.add(new Team(
                         teamName,
@@ -97,11 +111,16 @@ public class Game {
         for (Team team : teams) {
             if (team.getMembers().contains(player.getUniqueId())) {
                 team.removeMember(player.getUniqueId());
-                this.restoreInventory(player);
                 this.audience.remove(player);
+                Bukkit.getScheduler().runTask(CTFPlugin.get(), () -> this.restoreInventory(player)); // Needs to be on main thread for teleporting
 
                 ConfigManager.get().getMessages().sendPlayerQuit(player);
                 ConfigManager.get().getMessages().sendPlayerQuitBroadcast(this.getAudience(), player.getName());
+
+                if (team.getMembers().isEmpty() && active) {
+                    ConfigManager.get().getMessages().sendPlayerGameEndedNoPlayersOnTeam(this.getAudience(), team);
+                    this.end(null);
+                }
                 return;
             }
         }
@@ -111,10 +130,12 @@ public class Game {
      * Starts the game
      */
     public void start(Player admin) {
+        Messages messages = ConfigManager.get().getMessages();
+
         // Check all flags are set
         for (Team team : teams) {
             if (team.getFlagLocation() == null) {
-                ConfigManager.get().getMessages().sendAdminNotAllFlagsSet(admin);
+                messages.sendAdminNotAllFlagsSet(admin);
                 return;
             }
         }
@@ -133,7 +154,7 @@ public class Game {
 
             // Ensure each team has at least one member
             if (team.getMembers().isEmpty()) {
-                ConfigManager.get().getMessages().sendAdminNeedPlayers(admin);
+                messages.sendAdminNeedPlayers(admin);
                 return;
             }
         }
@@ -146,24 +167,63 @@ public class Game {
             }
         }
 
-        ConfigManager.get().getMessages().sendAdminGameStarted(admin);
-        ConfigManager.get().getMessages().sendPlayerGameStarted(this.getAudience());
+        this.tasks.put(TaskType.TIMEOUT,
+                CTFPlugin.get().getServer().getScheduler().runTaskLater(CTFPlugin.get(), () -> {
+                    this.end(null);
+                    messages.sendPlayerOutOfTime(this.getAudience());
+                }, CTFPlugin.get().getConfigManager().getConfig().getGameMaxDuration() * 20L)
+        );
+
+        this.tasks.put(TaskType.SCORE_UPDATE,
+                CTFPlugin.get().getServer().getScheduler().runTaskTimerAsynchronously(CTFPlugin.get(), () -> {
+                    messages.sendPlayerTimeUpdate(this.getAudience(), this.formatTimeRemaining());
+                    int capturesToWin = CTFPlugin.get().getConfigManager().getConfig().getCapturesToWin();
+                    for (Team team : teams) {
+                        messages.sendPlayerScoreUpdate(this.getAudience(), team.getDisplayName(), team.getScore(), capturesToWin);
+                    }
+                }, 20 * 30L, 20 * 30L)
+        ); // Update every 30 seconds
+
+        messages.sendAdminGameStarted(admin);
+        messages.sendPlayerGameStarted(this.getAudience());
     }
 
-    public void end(@Nullable Player admin, boolean cancelled) {
+    /**
+     * Ends the game, resetting all values and deleting flags.
+     *
+     * @param admin     The admin who ended the game (can be null)
+     */
+    public void end(@Nullable Player admin) {
         // Delete flags from the world in case set before game start
-        if (admin == null) {
-            this.teams.forEach(Team::deleteFlagSync);
-        } else {
-            this.teams.forEach(Team::deleteFlag);
-        }
+        teams.forEach(team -> {
+            if (admin == null) { // Prevents error messages about async block changes
+                team.deleteFlagSync();
+            } else {
+                team.deleteFlag();
+            }
 
-        if (!this.active) return;
+            team.getMembers().forEach(playerId -> {
+                Player player = CTFPlugin.get().getServer().getPlayer(playerId);
+                if (player != null) this.restoreInventory(player);
+            });
+        });
+
+        this.tasks.values().forEach(BukkitTask::cancel);
+        this.reset();
     }
 
     public @Nullable Team isFlag(Material material, Location loc) {
         for (Team team : teams) {
             if (team.isFlag(material, loc)) {
+                return team;
+            }
+        }
+        return null;
+    }
+
+    public @Nullable Team isDroppedFlag(Material material, Location loc) {
+        for (Team team : teams) {
+            if (team.isDroppedFlag(material, loc)) {
                 return team;
             }
         }
@@ -178,34 +238,76 @@ public class Game {
         return teams.stream().anyMatch(t -> t.getMembers().contains(player.getUniqueId()));
     }
 
-    public Team getTeam(String name) {
+    public Team getPlayerTeam(Player player) {
         return teams.stream()
-                .filter(t -> t.getName().equalsIgnoreCase(name))
+                .filter(t -> t.getMembers().contains(player.getUniqueId()))
                 .findFirst()
                 .orElse(null);
     }
 
-    private Audience getAudience() {
+    public Team getTeam(String teamName) {
+        return teams.stream()
+                .filter(t -> t.getName().equalsIgnoreCase(teamName))
+                .findFirst()
+                .orElse(null);
+    }
+
+    public Map<UUID, String> getFlagCarriers() {
+        return flagCarriers;
+    }
+
+    public Audience getAudience() {
         return Audience.audience(audience);
     }
 
-    private void cacheInventory(Player player) {
-        cachedPlayer.put(
-                player.getUniqueId(),
-                new CachedPlayer(player.getInventory().getExtraContents(), player.getLocation())
-        );
-        player.getInventory().clear();
+    public Set<Team> getTeams() {
+        return teams;
     }
 
-    private void restoreInventory(Player player) {
-        CachedPlayer cached = cachedPlayer.get(player.getUniqueId());
+    public String formatTimeRemaining() {
+        long elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000;
+        long remainingSeconds = CTFPlugin.get().getConfigManager().getConfig().getGameMaxDuration() - elapsedSeconds;
+
+        long minutes = remainingSeconds / 60;
+        long seconds = remainingSeconds % 60;
+
+        return String.format("%02d:%02d", minutes, seconds);
+    }
+
+    private void cacheInventory(Player player) {
+        cachedInventories.put(
+                player.getUniqueId(),
+                new CachedPlayer(
+                        player.getInventory().getContents().clone(),
+                        player.getInventory().getArmorContents().clone(),
+                        player.getInventory().getExtraContents().clone(),
+                        new FinePosition(
+                                player.getLocation().getX(),
+                                player.getLocation().getY(),
+                                player.getLocation().getZ(),
+                                player.getLocation().getWorld().getName()
+                        )
+                )
+        );
+
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(null);
+        player.getInventory().setExtraContents(null);
+    }
+
+    public void restoreInventory(Player player) {
+        CachedPlayer cached = cachedInventories.get(player.getUniqueId());
+
         if (cached != null) {
-            player.getInventory().setExtraContents(cached.getInventoryContents());
-            player.teleport(cached.getPosition().toLocation());
-            cachedPlayer.remove(player.getUniqueId());
+            player.getInventory().setContents(cached.inventoryContents());
+            player.getInventory().setArmorContents(cached.armorContents());
+            player.getInventory().setExtraContents(cached.extraContents());
+
+            player.teleport(cached.position().toLocation());
+
+            cachedInventories.remove(player.getUniqueId());
         }
     }
-
 
     public static Game get() {
         return instance;

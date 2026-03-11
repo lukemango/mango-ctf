@@ -2,6 +2,7 @@ package com.lukemango.ctf.config.impl;
 
 import com.lukemango.ctf.CTFPlugin;
 import com.lukemango.ctf.config.util.AbstractConfig;
+import com.lukemango.ctf.model.impl.Team;
 import com.lukemango.ctf.util.Colourify;
 import net.kyori.adventure.audience.Audience;
 import org.bukkit.entity.Player;
@@ -42,6 +43,89 @@ public class Messages extends AbstractConfig {
     public void sendPlayerGameStarted(Audience audience) {
         this.sendMessage(audience, "player-messages.game-started",
                 "captures-to-win", String.valueOf(CTFPlugin.get().getConfigManager().getConfig().getCapturesToWin())
+        );
+    }
+
+    public void sendPlayerOutOfTime(Audience audience) {
+        this.sendMessage(audience, "player-messages.out-of-time");
+    }
+
+    public void sendPlayerCantStealOwnFlag(Player player) {
+        this.sendMessage(player, "player-messages.cant-steal-own-flag");
+    }
+
+    public void sendPlayerAlreadyCarryingFlag(Player player) {
+        this.sendMessage(player, "player-messages.already-carrying-flag");
+    }
+
+    public void sendPlayerFlagAlreadyStolen(Player player) {
+        this.sendMessage(player, "player-messages.flag-already-stolen");
+    }
+
+    public void sendPlayerFlagStolen(Audience audience, String playerName, String teamName) {
+        this.sendMessage(audience, "player-messages.flag-stolen",
+                "<player>", playerName,
+                "<team>", teamName
+        );
+    }
+
+    public void sendPlayerFlagCaptured(Audience audience, String playerName, String teamName, int captures, int capturesToWin) {
+        this.sendMessage(audience, "player-messages.flag-captured",
+                "<player>", playerName,
+                "<team>", teamName,
+                "<current-captures>", String.valueOf(captures),
+                "<captures-to-win>", String.valueOf(capturesToWin)
+        );
+    }
+
+    public void sendPlayerTimeUpdate(Audience audience, String timeRemaining) {
+        this.sendMessage(audience, "player-messages.time-update",
+                "<time-remaining>", timeRemaining
+        );
+    }
+
+    public void sendPlayerScoreUpdate(Audience audience, String teamName, int currentCaptures, int capturesToWin) {
+        this.sendMessage(audience, "player-messages.score-update",
+                "<team>", teamName,
+                "<current-captures>", String.valueOf(currentCaptures),
+                "<captures-to-win>", String.valueOf(capturesToWin)
+        );
+    }
+
+    public void sendPlayerGameEndedNoPlayersOnTeam(Audience audience, Team team) {
+        this.sendMessage(audience, "player-messages.game-ended-no-players-on-team",
+                "<team>", team.getDisplayName()
+        );
+    }
+
+    public void sendPlayerGameEnded(Audience audience, Team team) {
+        this.sendMessage(audience, "player-messages.game-ended",
+                "<team>", team.getDisplayName()
+        );
+    }
+
+    public void sendPlayerNoGameActive(Player player) {
+        this.sendMessage(player, "player-messages.no-game-active");
+    }
+
+    public void sendPlayerPickedUpDroppedFlag(Audience audience, String playerName, String teamName) {
+        this.sendMessage(audience, "player-messages.picked-up-dropped-flag",
+                "<player>", playerName,
+                "<team>", teamName
+        );
+    }
+
+    public void sendPlayerDroppedFlag(Audience audience, String playerName, String teamName) {
+        this.sendMessage(audience, "player-messages.dropped-flag",
+                "<player>", playerName,
+                "<team>", teamName
+        );
+    }
+
+    public void sendPlayerReturnedFlag(Audience audience, String playerName, String teamName) {
+        this.sendMessage(audience, "player-messages.returned-flag",
+                "<player>", playerName,
+                "<team>", teamName
         );
     }
 
