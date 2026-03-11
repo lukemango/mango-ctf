@@ -63,23 +63,23 @@ public class Game {
             return;
         }
 
-        if (teams.isEmpty()) {
-            this.reset();
-            for (String teamName : cfgManager.getConfig().getTeams()) {
-                teams.add(new Team(
-                        teamName,
-                        cfgManager.getConfig().getTeamName(teamName),
-                        cfgManager.getConfig().getTeamColor(teamName),
-                        cfgManager.getConfig().getTeamFlagMaterial(teamName)
-                ));
-            }
-        } else {
+        if (!teams.isEmpty()) {
             for (Team t : teams) {
                 if (t.getMembers().contains(player.getUniqueId())) {
                     cfgManager.getMessages().sendPlayerAlreadyInTeam(player);
                     return;
                 }
             }
+        }
+
+        this.reset();
+        for (String teamName : cfgManager.getConfig().getTeams()) {
+            teams.add(new Team(
+                    teamName,
+                    cfgManager.getConfig().getTeamName(teamName),
+                    cfgManager.getConfig().getTeamColor(teamName),
+                    cfgManager.getConfig().getTeamFlagMaterial(teamName)
+            ));
         }
 
         // Add to audience
@@ -111,20 +111,20 @@ public class Game {
         Messages messages = ConfigManager.get().getMessages();
 
         for (Team team : teams) {
-            if (team.getMembers().contains(player.getUniqueId())) {
-                team.removeMember(player.getUniqueId());
-                this.audience.remove(player);
-                Bukkit.getScheduler().runTask(CTFPlugin.get(), () -> this.restoreInventory(player)); // Needs to be on main thread for teleporting
+            if (!team.getMembers().contains(player.getUniqueId())) continue;
 
-                messages.sendPlayerQuit(player);
-                messages.sendPlayerQuitBroadcast(this.getAudience(), player.getName());
+            team.removeMember(player.getUniqueId());
+            this.audience.remove(player);
+            Bukkit.getScheduler().runTask(CTFPlugin.get(), () -> this.restoreInventory(player)); // Needs to be on main thread for teleporting
 
-                if (team.getMembers().isEmpty() && active) {
-                    messages.sendPlayerGameEndedNoPlayersOnTeam(this.getAudience(), team);
-                    this.end(null);
-                }
-                return;
+            messages.sendPlayerQuit(player);
+            messages.sendPlayerQuitBroadcast(this.getAudience(), player.getName());
+
+            if (team.getMembers().isEmpty() && active) {
+                messages.sendPlayerGameEndedNoPlayersOnTeam(this.getAudience(), team);
+                this.end(null);
             }
+            return;
         }
     }
 
@@ -193,7 +193,7 @@ public class Game {
     /**
      * Ends the game, resetting all values and deleting flags.
      *
-     * @param admin     The admin who ended the game (can be null)
+     * @param admin The admin who ended the game (can be null)
      */
     public void end(@Nullable Player admin) {
         // Delete flags from the world in case set before game start
