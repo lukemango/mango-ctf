@@ -108,17 +108,19 @@ public class Game {
     }
 
     public void leave(Player player) {
+        Messages messages = ConfigManager.get().getMessages();
+
         for (Team team : teams) {
             if (team.getMembers().contains(player.getUniqueId())) {
                 team.removeMember(player.getUniqueId());
                 this.audience.remove(player);
                 Bukkit.getScheduler().runTask(CTFPlugin.get(), () -> this.restoreInventory(player)); // Needs to be on main thread for teleporting
 
-                ConfigManager.get().getMessages().sendPlayerQuit(player);
-                ConfigManager.get().getMessages().sendPlayerQuitBroadcast(this.getAudience(), player.getName());
+                messages.sendPlayerQuit(player);
+                messages.sendPlayerQuitBroadcast(this.getAudience(), player.getName());
 
                 if (team.getMembers().isEmpty() && active) {
-                    ConfigManager.get().getMessages().sendPlayerGameEndedNoPlayersOnTeam(this.getAudience(), team);
+                    messages.sendPlayerGameEndedNoPlayersOnTeam(this.getAudience(), team);
                     this.end(null);
                 }
                 return;

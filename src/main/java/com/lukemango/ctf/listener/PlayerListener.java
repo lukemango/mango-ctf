@@ -1,6 +1,7 @@
 package com.lukemango.ctf.listener;
 
 import com.lukemango.ctf.config.ConfigManager;
+import com.lukemango.ctf.config.impl.Messages;
 import com.lukemango.ctf.model.Game;
 import com.lukemango.ctf.model.impl.Team;
 import com.lukemango.ctf.util.ItemUtil;
@@ -149,23 +150,24 @@ public class PlayerListener implements Listener {
                 && event.getAction() != Action.LEFT_CLICK_BLOCK
                 || event.getClickedBlock() == null) return;
 
+        Messages messages = ConfigManager.get().getMessages();
         Block block = event.getClickedBlock();
         Team team = Game.get().isFlag(block.getType(), block.getLocation());
 
         if (team == null) return;
         if (team.getMembers().contains(player.getUniqueId())) { // Player is trying to steal their own flag
-            ConfigManager.get().getMessages().sendPlayerCantStealOwnFlag(player);
+            messages.sendPlayerCantStealOwnFlag(player);
             return;
         }
 
         Map<UUID, String> stolenFlags = Game.get().getFlagCarriers();
         if (stolenFlags.containsKey(player.getUniqueId())) { // Player is already carrying a flag
-            ConfigManager.get().getMessages().sendPlayerAlreadyCarryingFlag(player);
+            messages.sendPlayerAlreadyCarryingFlag(player);
             return;
         }
 
         if (stolenFlags.containsValue(team.getName())) { // Flag is already stolen by another player
-            ConfigManager.get().getMessages().sendPlayerFlagAlreadyStolen(player);
+            messages.sendPlayerFlagAlreadyStolen(player);
             return;
         }
 
@@ -184,7 +186,7 @@ public class PlayerListener implements Listener {
         block.setType(org.bukkit.Material.AIR);
 
         // Broadcast message
-        ConfigManager.get().getMessages().sendPlayerFlagStolen(Game.get().getAudience(),
+        messages.sendPlayerFlagStolen(Game.get().getAudience(),
                 player.getName(),
                 team.getDisplayName()
         );
@@ -194,6 +196,7 @@ public class PlayerListener implements Listener {
         Map<UUID, String> stolenFlags = Game.get().getFlagCarriers();
         if (!stolenFlags.containsKey(player.getUniqueId())) return; // Player is not carrying a flag
 
+        Messages messages = ConfigManager.get().getMessages();
         Team stolenFlagTeam = Game.get().getTeam(stolenFlags.get(player.getUniqueId()));
         Team playerTeam = Game.get().getPlayerTeam(player);
 
@@ -217,7 +220,7 @@ public class PlayerListener implements Listener {
 
         // Broadcast message
         if (playerTeam == stolenFlagTeam) {
-            ConfigManager.get().getMessages().sendPlayerReturnedFlag(Game.get().getAudience(),
+            messages.sendPlayerReturnedFlag(Game.get().getAudience(),
                     player.getName(),
                     stolenFlagTeam.getDisplayName()
             );
@@ -228,12 +231,12 @@ public class PlayerListener implements Listener {
 
         int remainingToWin = ConfigManager.get().getConfig().getCapturesToWin() - playerTeam.getScore();
         if (remainingToWin == 0) {
-            ConfigManager.get().getMessages().sendPlayerGameEnded(Game.get().getAudience(), playerTeam);
+            messages.sendPlayerGameEnded(Game.get().getAudience(), playerTeam);
             Game.get().end(null);
             return;
         }
 
-        ConfigManager.get().getMessages().sendPlayerFlagCaptured(Game.get().getAudience(),
+        messages.sendPlayerFlagCaptured(Game.get().getAudience(),
                 player.getName(),
                 stolenFlagTeam.getDisplayName(),
                 playerTeam.getScore(),
